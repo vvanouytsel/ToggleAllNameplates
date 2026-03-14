@@ -1,0 +1,9 @@
+## Interface: 110207, 120000, 120001
+## Title: ToggleAllNameplates
+## Notes: Automatically toggles all nameplate visibility based on current zone and configurable conditions
+## Author: Vincent Van Ouytsel
+## Version: 1.0.0
+## SavedVariables: ToggleAllNameplatesDB
+## IconTexture: Interface\Icons\Ability_Warrior_BattleShout
+
+ToggleAllNameplates.lua
