@@ -33,15 +33,15 @@ jobs:
       - name: Update TOC version
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          sed -i "s/^## Version:.*/## Version: ${VERSION}/" SpellCooldown.toc
-          cat SpellCooldown.toc
+          sed -i "s/^## Version:.*/## Version: ${VERSION}/" ToggleAllNameplates.toc
+          cat ToggleAllNameplates.toc
       
       - name: Create addon package
         run: |
-          mkdir -p release/SpellCooldown
-          cp -r SpellCooldown.lua SpellCooldown.toc LICENSE README.md release/SpellCooldown/
+          mkdir -p release/ToggleAllNameplates
+          cp -r ToggleAllNameplates.lua ToggleAllNameplates.toc LICENSE README.md release/ToggleAllNameplates/
           cd release
-          zip -r SpellCooldown-${{ steps.get_version.outputs.version }}.zip SpellCooldown/
+          zip -r ToggleAllNameplates-${{ steps.get_version.outputs.version }}.zip ToggleAllNameplates/
           cd ..
           ls -lh release/
       
@@ -51,7 +51,7 @@ jobs:
           token: ${{ secrets.CURSEFORGE_API_KEY }}
           project_id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
           game_endpoint: wow
-          file_path: release/SpellCooldown-${{ steps.get_version.outputs.version }}.zip
+          file_path: release/ToggleAllNameplates-${{ steps.get_version.outputs.version }}.zip
           changelog: ${{ github.event.release.body || 'New release' }}
           changelog_type: markdown
           release_type: release
@@ -59,5 +59,5 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SpellCooldown-${{ steps.get_version.outputs.version }}
-          path: release/SpellCooldown-${{ steps.get_version.outputs.version }}.zip
+          name: ToggleAllNameplates-${{ steps.get_version.outputs.version }}
+          path: release/ToggleAllNameplates-${{ steps.get_version.outputs.version }}.zip
