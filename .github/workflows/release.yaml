@@ -39,7 +39,7 @@ jobs:
       - name: Create addon package
         run: |
           mkdir -p release/ToggleAllNameplates
-          cp -r ToggleAllNameplates.lua ToggleAllNameplates.toc LICENSE README.md release/ToggleAllNameplates/
+          cp -r ToggleAllNameplates.lua ToggleAllNameplates.toc README.md release/ToggleAllNameplates/
           cd release
           zip -r ToggleAllNameplates-${{ steps.get_version.outputs.version }}.zip ToggleAllNameplates/
           cd ..
