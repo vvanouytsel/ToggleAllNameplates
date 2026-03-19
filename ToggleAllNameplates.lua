@@ -30,6 +30,10 @@ end
 local function ShouldShowNameplates()
     local inInstance, instanceType = IsInInstance()
     if not inInstance then
+        if instanceType == "scenario" then
+            -- This happens for some Delves
+            return GetSetting("enableInScenarios")
+        end
         return GetSetting("enableInOpenWorld")
     end
     if instanceType == "party"    and GetSetting("enableInDungeons")      then return true end
