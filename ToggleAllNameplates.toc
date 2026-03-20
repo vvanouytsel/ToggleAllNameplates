@@ -2,7 +2,7 @@
 ## Title: ToggleAllNameplates
 ## Notes: Automatically toggles all nameplate visibility based on current zone and configurable conditions
 ## Author: Vincent Van Ouytsel
-## Version: 1.0.1
+## Version: 1.0.2
 ## SavedVariables: ToggleAllNameplatesDB
 ## IconTexture: Interface\Icons\Ability_Warrior_BattleShout
 

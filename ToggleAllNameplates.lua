@@ -252,7 +252,7 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1, isReloadingUi)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -263,8 +263,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, isReloadingUi)
     elseif event == "PLAYER_LOGIN" then
         print("|cFF00FF00ToggleAllNameplates|r loaded! Use |cFFFFD100/tan|r to toggle manually, or |cFFFFD100/tan config|r to open settings.")
         UpdateNameplates()
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        -- Fires on every zone transition / instance entry / exit
+    elseif event == "LOADING_SCREEN_DISABLED" then
         UpdateNameplates()
     end
 end)
