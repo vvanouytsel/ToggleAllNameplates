@@ -8,6 +8,7 @@ local defaultSettings = {
     enableInScenarios     = true,
     enableInBattlegrounds = false,
     enableInArenas        = false,
+    showStatusMessages    = true,
 }
 
 -- ToggleAllNameplatesDB is populated from disk by the engine before ADDON_LOADED fires.
@@ -48,10 +49,14 @@ end
 local function UpdateNameplates()
     if ShouldShowNameplates() then
         SetCVar("nameplateShowAll", 1)
-        print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFF00FF00always shown|r for all units in this zone.")
+        if GetSetting("showStatusMessages") then
+            print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFF00FF00always shown|r for all units in this zone.")
+        end
     else
         SetCVar("nameplateShowAll", 0)
-        print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFFFF4444hidden by default|r — only shown when targeted or interacted with.")
+        if GetSetting("showStatusMessages") then
+            print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFFFF4444hidden by default|r — only shown when targeted or interacted with.")
+        end
     end
 end
 
@@ -91,6 +96,7 @@ openWorldCheckbox:SetChecked(GetSetting("enableInOpenWorld"))
 _G[openWorldCheckbox:GetName() .. "Text"]:SetText("Open World")
 openWorldCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInOpenWorld", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local openWorldDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -104,6 +110,7 @@ dungeonsCheckbox:SetChecked(GetSetting("enableInDungeons"))
 _G[dungeonsCheckbox:GetName() .. "Text"]:SetText("Dungeons (5-man instances)")
 dungeonsCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInDungeons", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local dungeonsDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -117,6 +124,7 @@ raidsCheckbox:SetChecked(GetSetting("enableInRaids"))
 _G[raidsCheckbox:GetName() .. "Text"]:SetText("Raids")
 raidsCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInRaids", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local raidsDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -130,6 +138,7 @@ scenariosCheckbox:SetChecked(GetSetting("enableInScenarios"))
 _G[scenariosCheckbox:GetName() .. "Text"]:SetText("Scenarios")
 scenariosCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInScenarios", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local scenariosDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -143,6 +152,7 @@ bgCheckbox:SetChecked(GetSetting("enableInBattlegrounds"))
 _G[bgCheckbox:GetName() .. "Text"]:SetText("Battlegrounds")
 bgCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInBattlegrounds", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local bgDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
@@ -156,11 +166,29 @@ arenaCheckbox:SetChecked(GetSetting("enableInArenas"))
 _G[arenaCheckbox:GetName() .. "Text"]:SetText("Arenas")
 arenaCheckbox:SetScript("OnClick", function(self)
     SetSetting("enableInArenas", self:GetChecked())
+    UpdateNameplates()
 end)
 
 local arenaDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 arenaDesc:SetPoint("TOPLEFT", arenaCheckbox, "BOTTOMLEFT", 20, -2)
 arenaDesc:SetText("Show all nameplates when inside an arena.")
+
+-- ── Section header (notifications) ──────────────────────────────────────────
+local notifSectionLabel = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+notifSectionLabel:SetPoint("TOPLEFT", arenaDesc, "BOTTOMLEFT", -20, -24)
+notifSectionLabel:SetText("Notifications:")
+
+local statusMsgCheckbox = CreateFrame("CheckButton", "TANStatusMessagesCheckbox", scrollChild, "UICheckButtonTemplate")
+statusMsgCheckbox:SetPoint("TOPLEFT", notifSectionLabel, "BOTTOMLEFT", 0, -8)
+statusMsgCheckbox:SetChecked(GetSetting("showStatusMessages"))
+_G[statusMsgCheckbox:GetName() .. "Text"]:SetText("Show console notifications")
+statusMsgCheckbox:SetScript("OnClick", function(self)
+    SetSetting("showStatusMessages", self:GetChecked())
+end)
+
+local statusMsgDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+statusMsgDesc:SetPoint("TOPLEFT", statusMsgCheckbox, "BOTTOMLEFT", 20, -2)
+statusMsgDesc:SetText("Print addon messages to the console (e.g. when nameplates are shown or hidden).")
 
 -- Refresh all config checkboxes to reflect the current (post-load) saved values.
 -- Defined here because it references checkbox locals declared above.
@@ -171,24 +199,12 @@ local function RefreshCheckboxes()
     scenariosCheckbox:SetChecked(GetSetting("enableInScenarios"))
     bgCheckbox:SetChecked(GetSetting("enableInBattlegrounds"))
     arenaCheckbox:SetChecked(GetSetting("enableInArenas"))
+    statusMsgCheckbox:SetChecked(GetSetting("showStatusMessages"))
 end
-
--- ── Apply Now button ─────────────────────────────────────────────────────────
-local applyButton = CreateFrame("Button", "TANApplyButton", scrollChild, "UIPanelButtonTemplate")
-applyButton:SetPoint("TOPLEFT", arenaDesc, "BOTTOMLEFT", -20, -30)
-applyButton:SetSize(140, 25)
-applyButton:SetText("Apply Now")
-applyButton:SetScript("OnClick", function()
-    UpdateNameplates()
-end)
-
-local applyDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-applyDesc:SetPoint("TOPLEFT", applyButton, "BOTTOMLEFT", 0, -6)
-applyDesc:SetText("Re-evaluates current zone and applies the correct nameplate visibility immediately.")
 
 -- ── Current status label ──────────────────────────────────────────────────────
 local statusLabel = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-statusLabel:SetPoint("TOPLEFT", applyDesc, "BOTTOMLEFT", 0, -20)
+statusLabel:SetPoint("TOPLEFT", statusMsgDesc, "BOTTOMLEFT", 0, -30)
 statusLabel:SetText("")
 
 local zoneTypeNames = {
