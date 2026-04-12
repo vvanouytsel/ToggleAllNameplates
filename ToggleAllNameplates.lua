@@ -2,25 +2,13 @@ local addonName, addon = ...
 
 -- Default settings
 local defaultSettings = {
-    enemyInOpenWorld              = false,
-    friendlyPlayerInOpenWorld     = false,
-    friendlyNPCInOpenWorld        = false,
-    enemyInDungeons               = true,
-    friendlyPlayerInDungeons      = true,
-    friendlyNPCInDungeons         = true,
-    enemyInRaids                  = true,
-    friendlyPlayerInRaids         = true,
-    friendlyNPCInRaids            = true,
-    enemyInScenarios              = true,
-    friendlyPlayerInScenarios     = true,
-    friendlyNPCInScenarios        = true,
-    enemyInBattlegrounds          = false,
-    friendlyPlayerInBattlegrounds = false,
-    friendlyNPCInBattlegrounds    = false,
-    enemyInArenas                 = false,
-    friendlyPlayerInArenas        = false,
-    friendlyNPCInArenas           = false,
-    showStatusMessages            = true,
+    enableInOpenWorld     = false,
+    enableInDungeons      = true,
+    enableInRaids         = true,
+    enableInScenarios     = true,
+    enableInBattlegrounds = false,
+    enableInArenas        = false,
+    showStatusMessages    = true,
 }
 
 -- ToggleAllNameplatesDB is populated from disk by the engine before ADDON_LOADED fires.
@@ -38,53 +26,35 @@ local function SetSetting(key, value)
     ToggleAllNameplatesDB[key] = value
 end
 
--- Determine which nameplate types should be shown in the current zone
+-- Determine whether all nameplates should be shown in the current zone
 -- instanceType values: "none", "party" (dungeon), "raid", "scenario", "pvp" (battleground), "arena"
--- Returns: enemyEnabled, friendlyPlayerEnabled, friendlyNPCEnabled
-local function GetNameplateSettings()
+local function ShouldShowNameplates()
     local inInstance, instanceType = IsInInstance()
     if not inInstance then
         if instanceType == "scenario" then
             -- This happens for some Delves
-            return GetSetting("enemyInScenarios"), GetSetting("friendlyPlayerInScenarios"), GetSetting("friendlyNPCInScenarios")
+            return GetSetting("enableInScenarios")
         end
-        return GetSetting("enemyInOpenWorld"), GetSetting("friendlyPlayerInOpenWorld"), GetSetting("friendlyNPCInOpenWorld")
+        return GetSetting("enableInOpenWorld")
     end
-    if instanceType == "party"    then return GetSetting("enemyInDungeons"),      GetSetting("friendlyPlayerInDungeons"),      GetSetting("friendlyNPCInDungeons")      end
-    if instanceType == "raid"     then return GetSetting("enemyInRaids"),         GetSetting("friendlyPlayerInRaids"),         GetSetting("friendlyNPCInRaids")         end
-    if instanceType == "scenario" then return GetSetting("enemyInScenarios"),     GetSetting("friendlyPlayerInScenarios"),     GetSetting("friendlyNPCInScenarios")     end
-    if instanceType == "pvp"      then return GetSetting("enemyInBattlegrounds"), GetSetting("friendlyPlayerInBattlegrounds"), GetSetting("friendlyNPCInBattlegrounds") end
-    if instanceType == "arena"    then return GetSetting("enemyInArenas"),        GetSetting("friendlyPlayerInArenas"),        GetSetting("friendlyNPCInArenas")        end
-    return false, false, false
+    if instanceType == "party"    and GetSetting("enableInDungeons")      then return true end
+    if instanceType == "raid"     and GetSetting("enableInRaids")         then return true end
+    if instanceType == "scenario" and GetSetting("enableInScenarios")     then return true end
+    if instanceType == "pvp"      and GetSetting("enableInBattlegrounds") then return true end
+    if instanceType == "arena"    and GetSetting("enableInArenas")        then return true end
+    return false
 end
 
--- Apply nameplate CVars based on the current zone and settings
+-- Apply the nameplate CVar based on the current zone and settings
 local function UpdateNameplates()
-    local enemyEnabled, friendlyPlayerEnabled, friendlyNPCEnabled = GetNameplateSettings()
-
-    if enemyEnabled or friendlyPlayerEnabled or friendlyNPCEnabled then
+    if ShouldShowNameplates() then
         SetCVar("nameplateShowAll", 1)
-        SetCVar("nameplateShowEnemies", enemyEnabled and 1 or 0)
-        SetCVar("nameplateShowFriends", friendlyPlayerEnabled and 1 or 0)
-        SetCVar("nameplateShowFriendlyNPCs", friendlyNPCEnabled and 1 or 0)
+        if GetSetting("showStatusMessages") then
+            print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFF00FF00always shown|r for all units in this zone.")
+        end
     else
         SetCVar("nameplateShowAll", 0)
-        SetCVar("nameplateShowEnemies", 1)
-        SetCVar("nameplateShowFriends", 1)
-        SetCVar("nameplateShowFriendlyNPCs", 1)
-    end
-
-    if GetSetting("showStatusMessages") then
-        local parts = {}
-        if enemyEnabled then table.insert(parts, "|cFF00FF00Enemy|r") end
-        if friendlyPlayerEnabled then table.insert(parts, "|cFF00FF00Friendly player|r") end
-        if friendlyNPCEnabled then table.insert(parts, "|cFF00FF00Friendly NPC|r") end
-
-        if #parts == 3 then
-            print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFF00FF00always shown|r for all units in this zone.")
-        elseif #parts > 0 then
-            print("|cFF00FF00ToggleAllNameplates:|r Showing: " .. table.concat(parts, ", ") .. " nameplates.")
-        else
+        if GetSetting("showStatusMessages") then
             print("|cFF00FF00ToggleAllNameplates:|r Nameplates are now |cFFFF4444hidden by default|r — only shown when targeted or interacted with.")
         end
     end
@@ -102,7 +72,7 @@ scrollFrame:SetPoint("TOPLEFT", 3, -4)
 scrollFrame:SetPoint("BOTTOMRIGHT", -27, 4)
 
 local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-scrollChild:SetSize(600, 900)
+scrollChild:SetSize(600, 600)
 scrollFrame:SetScrollChild(scrollChild)
 
 -- Title
@@ -112,81 +82,100 @@ title:SetText("ToggleAllNameplates Settings")
 
 local desc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-desc:SetText("Control enemy and friendly nameplate visibility per zone type.\nWhen disabled, nameplates are only shown when targeting or interacting with a unit.")
+desc:SetText("Automatically shows all nameplates for all units in selected zone types.\nWhen disabled for a zone, nameplates are only shown when targeting or interacting with a unit.")
 
 -- ── Section header ──────────────────────────────────────────────────────────
 local sectionLabel = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 sectionLabel:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -24)
-sectionLabel:SetText("Show Nameplates in:")
+sectionLabel:SetText("Always Show All Nameplates in:")
 
--- Helper to create a zone section with enemy, friendly player, and friendly NPC checkboxes
-local zoneSections = {}
-local function CreateZoneSection(anchor, offsetX, offsetY, zoneId, zoneName, enemyKey, friendlyPlayerKey, friendlyNPCKey)
-    local section = {}
+-- ── Open World checkbox ──────────────────────────────────────────────────────
+local openWorldCheckbox = CreateFrame("CheckButton", "TANOpenWorldCheckbox", scrollChild, "UICheckButtonTemplate")
+openWorldCheckbox:SetPoint("TOPLEFT", sectionLabel, "BOTTOMLEFT", 0, -8)
+openWorldCheckbox:SetChecked(GetSetting("enableInOpenWorld"))
+_G[openWorldCheckbox:GetName() .. "Text"]:SetText("Open World")
+openWorldCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInOpenWorld", self:GetChecked())
+    UpdateNameplates()
+end)
 
-    section.header = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    section.header:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", offsetX, offsetY)
-    section.header:SetText(zoneName)
+local openWorldDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+openWorldDesc:SetPoint("TOPLEFT", openWorldCheckbox, "BOTTOMLEFT", 20, -2)
+openWorldDesc:SetText("Show all nameplates while out in the open world (not in any instance).")
 
-    local enemyName = "TANEnemy" .. zoneId
-    section.enemyCB = CreateFrame("CheckButton", enemyName, scrollChild, "UICheckButtonTemplate")
-    section.enemyCB:SetPoint("TOPLEFT", section.header, "BOTTOMLEFT", 16, -4)
-    section.enemyCB:SetChecked(GetSetting(enemyKey))
-    _G[enemyName .. "Text"]:SetText("Enemy nameplates")
-    section.enemyCB.settingKey = enemyKey
-    section.enemyCB:SetScript("OnClick", function(self)
-        SetSetting(enemyKey, self:GetChecked())
-        UpdateNameplates()
-    end)
+-- ── Dungeons checkbox ────────────────────────────────────────────────────────
+local dungeonsCheckbox = CreateFrame("CheckButton", "TANDungeonsCheckbox", scrollChild, "UICheckButtonTemplate")
+dungeonsCheckbox:SetPoint("TOPLEFT", openWorldDesc, "BOTTOMLEFT", -20, -10)
+dungeonsCheckbox:SetChecked(GetSetting("enableInDungeons"))
+_G[dungeonsCheckbox:GetName() .. "Text"]:SetText("Dungeons (5-man instances)")
+dungeonsCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInDungeons", self:GetChecked())
+    UpdateNameplates()
+end)
 
-    local friendlyPlayerName = "TANFriendlyPlayer" .. zoneId
-    section.friendlyPlayerCB = CreateFrame("CheckButton", friendlyPlayerName, scrollChild, "UICheckButtonTemplate")
-    section.friendlyPlayerCB:SetPoint("TOPLEFT", section.enemyCB, "BOTTOMLEFT", 0, -2)
-    section.friendlyPlayerCB:SetChecked(GetSetting(friendlyPlayerKey))
-    _G[friendlyPlayerName .. "Text"]:SetText("Friendly player nameplates")
-    section.friendlyPlayerCB.settingKey = friendlyPlayerKey
-    section.friendlyPlayerCB:SetScript("OnClick", function(self)
-        SetSetting(friendlyPlayerKey, self:GetChecked())
-        UpdateNameplates()
-    end)
+local dungeonsDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+dungeonsDesc:SetPoint("TOPLEFT", dungeonsCheckbox, "BOTTOMLEFT", 20, -2)
+dungeonsDesc:SetText("Show all nameplates when inside a 5-man dungeon or heroic dungeon.")
 
-    local friendlyNPCName = "TANFriendlyNPC" .. zoneId
-    section.friendlyNPCCB = CreateFrame("CheckButton", friendlyNPCName, scrollChild, "UICheckButtonTemplate")
-    section.friendlyNPCCB:SetPoint("TOPLEFT", section.friendlyPlayerCB, "BOTTOMLEFT", 0, -2)
-    section.friendlyNPCCB:SetChecked(GetSetting(friendlyNPCKey))
-    _G[friendlyNPCName .. "Text"]:SetText("Friendly NPC nameplates")
-    section.friendlyNPCCB.settingKey = friendlyNPCKey
-    section.friendlyNPCCB:SetScript("OnClick", function(self)
-        SetSetting(friendlyNPCKey, self:GetChecked())
-        UpdateNameplates()
-    end)
+-- ── Raids checkbox ─────────────────────────────────────────────────────
+local raidsCheckbox = CreateFrame("CheckButton", "TANRaidsCheckbox", scrollChild, "UICheckButtonTemplate")
+raidsCheckbox:SetPoint("TOPLEFT", dungeonsDesc, "BOTTOMLEFT", -20, -10)
+raidsCheckbox:SetChecked(GetSetting("enableInRaids"))
+_G[raidsCheckbox:GetName() .. "Text"]:SetText("Raids")
+raidsCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInRaids", self:GetChecked())
+    UpdateNameplates()
+end)
 
-    section.lastElement = section.friendlyNPCCB
-    table.insert(zoneSections, section)
-    return section
-end
+local raidsDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+raidsDesc:SetPoint("TOPLEFT", raidsCheckbox, "BOTTOMLEFT", 20, -2)
+raidsDesc:SetText("Show all nameplates when inside a raid instance.")
 
-local openWorld = CreateZoneSection(sectionLabel, 0, -8,
-    "OpenWorld", "Open World", "enemyInOpenWorld", "friendlyPlayerInOpenWorld", "friendlyNPCInOpenWorld")
+-- ── Scenarios checkbox ───────────────────────────────────────────────────────
+local scenariosCheckbox = CreateFrame("CheckButton", "TANScenariosCheckbox", scrollChild, "UICheckButtonTemplate")
+scenariosCheckbox:SetPoint("TOPLEFT", raidsDesc, "BOTTOMLEFT", -20, -10)
+scenariosCheckbox:SetChecked(GetSetting("enableInScenarios"))
+_G[scenariosCheckbox:GetName() .. "Text"]:SetText("Scenarios")
+scenariosCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInScenarios", self:GetChecked())
+    UpdateNameplates()
+end)
 
-local dungeons = CreateZoneSection(openWorld.lastElement, -16, -12,
-    "Dungeons", "Dungeons (5-man instances)", "enemyInDungeons", "friendlyPlayerInDungeons", "friendlyNPCInDungeons")
+local scenariosDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+scenariosDesc:SetPoint("TOPLEFT", scenariosCheckbox, "BOTTOMLEFT", 20, -2)
+scenariosDesc:SetText("Show all nameplates when inside a scenario.")
 
-local raids = CreateZoneSection(dungeons.lastElement, -16, -12,
-    "Raids", "Raids", "enemyInRaids", "friendlyPlayerInRaids", "friendlyNPCInRaids")
+-- ── Battlegrounds checkbox ───────────────────────────────────────────────────
+local bgCheckbox = CreateFrame("CheckButton", "TANBattlegroundsCheckbox", scrollChild, "UICheckButtonTemplate")
+bgCheckbox:SetPoint("TOPLEFT", scenariosDesc, "BOTTOMLEFT", -20, -10)
+bgCheckbox:SetChecked(GetSetting("enableInBattlegrounds"))
+_G[bgCheckbox:GetName() .. "Text"]:SetText("Battlegrounds")
+bgCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInBattlegrounds", self:GetChecked())
+    UpdateNameplates()
+end)
 
-local scenarios = CreateZoneSection(raids.lastElement, -16, -12,
-    "Scenarios", "Scenarios", "enemyInScenarios", "friendlyPlayerInScenarios", "friendlyNPCInScenarios")
+local bgDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+bgDesc:SetPoint("TOPLEFT", bgCheckbox, "BOTTOMLEFT", 20, -2)
+bgDesc:SetText("Show all nameplates when inside a battleground.")
 
-local battlegrounds = CreateZoneSection(scenarios.lastElement, -16, -12,
-    "Battlegrounds", "Battlegrounds", "enemyInBattlegrounds", "friendlyPlayerInBattlegrounds", "friendlyNPCInBattlegrounds")
+-- ── Arenas checkbox ──────────────────────────────────────────────────────────
+local arenaCheckbox = CreateFrame("CheckButton", "TANArenaCheckbox", scrollChild, "UICheckButtonTemplate")
+arenaCheckbox:SetPoint("TOPLEFT", bgDesc, "BOTTOMLEFT", -20, -10)
+arenaCheckbox:SetChecked(GetSetting("enableInArenas"))
+_G[arenaCheckbox:GetName() .. "Text"]:SetText("Arenas")
+arenaCheckbox:SetScript("OnClick", function(self)
+    SetSetting("enableInArenas", self:GetChecked())
+    UpdateNameplates()
+end)
 
-local arenas = CreateZoneSection(battlegrounds.lastElement, -16, -12,
-    "Arenas", "Arenas", "enemyInArenas", "friendlyPlayerInArenas", "friendlyNPCInArenas")
+local arenaDesc = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+arenaDesc:SetPoint("TOPLEFT", arenaCheckbox, "BOTTOMLEFT", 20, -2)
+arenaDesc:SetText("Show all nameplates when inside an arena.")
 
 -- ── Section header (notifications) ──────────────────────────────────────────
 local notifSectionLabel = scrollChild:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-notifSectionLabel:SetPoint("TOPLEFT", arenas.lastElement, "BOTTOMLEFT", -16, -24)
+notifSectionLabel:SetPoint("TOPLEFT", arenaDesc, "BOTTOMLEFT", -20, -24)
 notifSectionLabel:SetText("Notifications:")
 
 local statusMsgCheckbox = CreateFrame("CheckButton", "TANStatusMessagesCheckbox", scrollChild, "UICheckButtonTemplate")
@@ -204,11 +193,12 @@ statusMsgDesc:SetText("Print addon messages to the console (e.g. when nameplates
 -- Refresh all config checkboxes to reflect the current (post-load) saved values.
 -- Defined here because it references checkbox locals declared above.
 local function RefreshCheckboxes()
-    for _, section in ipairs(zoneSections) do
-        section.enemyCB:SetChecked(GetSetting(section.enemyCB.settingKey))
-        section.friendlyPlayerCB:SetChecked(GetSetting(section.friendlyPlayerCB.settingKey))
-        section.friendlyNPCCB:SetChecked(GetSetting(section.friendlyNPCCB.settingKey))
-    end
+    openWorldCheckbox:SetChecked(GetSetting("enableInOpenWorld"))
+    dungeonsCheckbox:SetChecked(GetSetting("enableInDungeons"))
+    raidsCheckbox:SetChecked(GetSetting("enableInRaids"))
+    scenariosCheckbox:SetChecked(GetSetting("enableInScenarios"))
+    bgCheckbox:SetChecked(GetSetting("enableInBattlegrounds"))
+    arenaCheckbox:SetChecked(GetSetting("enableInArenas"))
     statusMsgCheckbox:SetChecked(GetSetting("showStatusMessages"))
 end
 
@@ -264,15 +254,9 @@ SlashCmdList["TOGGLEALLNAMEPLATES"] = function(msg)
         local v = GetCVar("nameplateShowAll")
         if v == "1" then
             SetCVar("nameplateShowAll", 0)
-            SetCVar("nameplateShowEnemies", 1)
-            SetCVar("nameplateShowFriends", 1)
-            SetCVar("nameplateShowFriendlyNPCs", 1)
             print("|cFF00FF00ToggleAllNameplates:|r Nameplates manually set to |cFFFF4444hidden by default|r.")
         else
             SetCVar("nameplateShowAll", 1)
-            SetCVar("nameplateShowEnemies", 1)
-            SetCVar("nameplateShowFriends", 1)
-            SetCVar("nameplateShowFriendlyNPCs", 1)
             print("|cFF00FF00ToggleAllNameplates:|r Nameplates manually set to |cFF00FF00always shown|r for all units.")
         end
     end
@@ -290,44 +274,6 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, isReloadingUi)
     if event == "ADDON_LOADED" and arg1 == addonName then
         -- SavedVariables are now available; initialise DB if this is a first install.
         if not ToggleAllNameplatesDB then ToggleAllNameplatesDB = {} end
-        -- Migrate from pre-1.1 single-toggle settings to enemy/friendly pairs.
-        local migrationMap = {
-            enableInOpenWorld     = { "enemyInOpenWorld",     "friendlyPlayerInOpenWorld",     "friendlyNPCInOpenWorld"     },
-            enableInDungeons      = { "enemyInDungeons",      "friendlyPlayerInDungeons",      "friendlyNPCInDungeons"      },
-            enableInRaids         = { "enemyInRaids",         "friendlyPlayerInRaids",         "friendlyNPCInRaids"         },
-            enableInScenarios     = { "enemyInScenarios",     "friendlyPlayerInScenarios",     "friendlyNPCInScenarios"     },
-            enableInBattlegrounds = { "enemyInBattlegrounds", "friendlyPlayerInBattlegrounds", "friendlyNPCInBattlegrounds" },
-            enableInArenas        = { "enemyInArenas",        "friendlyPlayerInArenas",        "friendlyNPCInArenas"        },
-        }
-        for oldKey, newKeys in pairs(migrationMap) do
-            if ToggleAllNameplatesDB[oldKey] ~= nil then
-                for _, newKey in ipairs(newKeys) do
-                    if ToggleAllNameplatesDB[newKey] == nil then
-                        ToggleAllNameplatesDB[newKey] = ToggleAllNameplatesDB[oldKey]
-                    end
-                end
-                ToggleAllNameplatesDB[oldKey] = nil
-            end
-        end
-        -- Migrate from pre-1.2 combined friendly settings to player/NPC split.
-        local friendlyMigrationMap = {
-            friendlyInOpenWorld     = { "friendlyPlayerInOpenWorld",     "friendlyNPCInOpenWorld"     },
-            friendlyInDungeons      = { "friendlyPlayerInDungeons",      "friendlyNPCInDungeons"      },
-            friendlyInRaids         = { "friendlyPlayerInRaids",         "friendlyNPCInRaids"         },
-            friendlyInScenarios     = { "friendlyPlayerInScenarios",     "friendlyNPCInScenarios"     },
-            friendlyInBattlegrounds = { "friendlyPlayerInBattlegrounds", "friendlyNPCInBattlegrounds" },
-            friendlyInArenas        = { "friendlyPlayerInArenas",        "friendlyNPCInArenas"        },
-        }
-        for oldKey, newKeys in pairs(friendlyMigrationMap) do
-            if ToggleAllNameplatesDB[oldKey] ~= nil then
-                for _, newKey in ipairs(newKeys) do
-                    if ToggleAllNameplatesDB[newKey] == nil then
-                        ToggleAllNameplatesDB[newKey] = ToggleAllNameplatesDB[oldKey]
-                    end
-                end
-                ToggleAllNameplatesDB[oldKey] = nil
-            end
-        end
         -- Sync checkboxes to persisted values.
         RefreshCheckboxes()
     elseif event == "PLAYER_LOGIN" then
