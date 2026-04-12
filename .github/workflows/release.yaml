@@ -51,7 +51,7 @@ jobs:
           token: ${{ secrets.CURSEFORGE_API_KEY }}
           project_id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
           game_endpoint: wow
-          game_versions: Retail
+          game_versions: 517
           file_path: release/ToggleAllNameplates-${{ steps.get_version.outputs.version }}.zip
           changelog: ${{ github.event.release.body || 'New release' }}
           changelog_type: markdown
